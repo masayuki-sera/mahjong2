@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻雀点数計算アプリ（5人）</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 共通スタイル – 4人版から変更なし ===== */
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: auto;
+            max-width: 680px;
+            margin-bottom: 40px;
+            margin-top: 40px;
+        }
+        h1 { margin-top: 0; font-size: 2rem; color: #00386b; text-align: center; margin-bottom: 1rem; }
+        .player-container { display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; width: 95%; gap: 0; }
+        .player-label { width: 26%; text-align: center; margin-right: 10px; font-size: 1rem; color: #333; }
+        input { max-width: 60%; padding: .5rem; font-size: 1rem; border: 1px solid #aaa; border-radius: 5px; background: #fff; }
+        button { width: 70%; padding: .6rem; background: linear-gradient(45deg,#00386b,#005c9b); border:none; border-radius:5px; color:#fff; font-size:1rem; cursor:pointer; margin:5px 1%; box-shadow:0 3px 5px rgba(0,0,0,.3); border-bottom:5px solid #00264b; }
+        button:hover { background:linear-gradient(45deg,#0088ff,#005c9b); margin-top:3px; box-shadow:0 1px 3px rgba(0,0,0,.3); border-bottom:2px solid #00264b; }
+        .button-container { display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        .error-message { color:red; margin-top:10px; font-size:1.1rem; }
+        .result-table, .result-table2 { margin-top: .3rem; width: 92%; border-collapse: collapse; box-shadow: 0 4px 8px rgba(0,0,0,.1); font-size:.9rem; table-layout:fixed; background: #fff; }
+        .result-table th,.result-table td,.result-table2 th,.result-table2 td{ border:1px solid #ddd; padding:.7rem; text-align:center; }
+        .result-table th,.result-table2 th{ background:#00386b; color:#fff; }
+        .result-score,.total-score,.average-rank { margin-top:1rem; font-size:1.1rem; font-weight:bold; text-align:center; color:#00386b; }
+        form { padding:1rem 1rem 2rem; background:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+        @media(max-width:600px){
+            .result-table,.result-table2{font-size:.8rem;width:97%;}
+            .result-table th,.result-table td,.result-table2 th,.result-table2 td{padding:.5rem;}
+            form{font-size:.8rem;width:80%;}
+            .player-label{width:40%;}
+            input{max-width:50%;}
+        }
+    </style>
+</head>
+<body>
+    <form>
+        <h1>麻雀点数計算アプリ（5人）</h1>
+        <!-- 5名分の入力欄 -->
+        <div class="player-container"><label class="player-label" id="playerLabel1">player1</label><input type="text" id="player1" placeholder="点数を入力"></div>
+        <div class="player-container"><label class="player-label" id="playerLabel2">player2</label><input type="text" id="player2" placeholder="点数を入力"></div>
+        <div class="player-container"><label class="player-label" id="playerLabel3">player3</label><input type="text" id="player3" placeholder="点数を入力"></div>
+        <div class="player-container"><label class="player-label" id="playerLabel4">player4</label><input type="text" id="player4" placeholder="点数を入力"></div>
+        <div class="player-container"><label class="player-label" id="playerLabel5">player5</label><input type="text" id="player5" placeholder="点数を入力"></div>
+
+        <div class="button-container">
+            <button type="button" onclick="add_scores()">計算して追加</button>
+            <button type="button" onclick="confirmDelete()">最新の1行を削除</button>
+            <button type="button" onclick="resetPage()">ページをリセット</button>
+            <button type="button" onclick="calculatePayments()">収支を計算</button>
+        </div>
+        <div class="error-message" id="errorMessage"></div>
+    </form>
+
+    <!-- === 表示部分 === -->
+    <div class="result-score">点数表</div>
+    <table class="result-table2" id="resultTable">
+        <thead>
+            <tr id="playerNames">
+                <th colspan="2">player1</th><th colspan="2">player2</th><th colspan="2">player3</th><th colspan="2">player4</th><th colspan="2">player5</th>
+            </tr>
+            <tr>
+                <th>順位</th><th>pt</th><th>順位</th><th>pt</th><th>順位</th><th>pt</th><th>順位</th><th>pt</th><th>順位</th><th>pt</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="total-score">合計pt</div>
+    <table class="result-table" id="totalScoreTable">
+        <thead>
+            <tr id="playerNames2"><th>player1</th><th>player2</th><th>player3</th><th>player4</th><th>player5</th></tr>
+        </thead>
+        <tbody><tr><td id="totalScore1">0</td><td id="totalScore2">0</td><td id="totalScore3">0</td><td id="totalScore4">0</td><td id="totalScore5">0</td></tr></tbody>
+    </table>
+
+    <div class="average-rank">平均順位</div>
+    <table class="result-table" id="averageRankTable">
+        <thead>
+            <tr id="playerNames3"><th>player1</th><th>player2</th><th>player3</th><th>player4</th><th>player5</th></tr>
+        </thead>
+        <tbody><tr><td id="average_rank1">-</td><td id="average_rank2">-</td><td id="average_rank3">-</td><td id="average_rank4">-</td><td id="average_rank5">-</td></tr></tbody>
+    </table>
+
+    <!-- ===== JavaScript ===== -->
+    <script>
+        const TOTAL_PLAYERS = 5;      // 全員
+        const PLAYERS_PER_GAME = 4;   // 1ゲームに参加する人数（固定）
+        const BASE_SCORE = 25000;
+
+        /* --- ユーザ名の取得と表示 --- */
+        function setPlayerNames() {
+            const names = [];
+            for (let i = 1; i <= TOTAL_PLAYERS; i++) {
+                const saved = localStorage.getItem('player' + i);
+                const name = saved || prompt(`Player ${i} の名前を入力してください:`);
+                names.push(name);
+                // ラベル
+                document.getElementById('playerLabel' + i).textContent = name;
+            }
+            // テーブルヘッダー
+            const playerNamesRow = document.getElementById('playerNames').children;
+            const playerNamesRow2 = document.getElementById('playerNames2').children;
+            const playerNamesRow3 = document.getElementById('playerNames3').children;
+            names.forEach((n, idx) => {
+                playerNamesRow[idx].textContent = n;
+                playerNamesRow2[idx].textContent = n;
+                playerNamesRow3[idx].textContent = n;
+            });
+            // 保存
+            names.forEach((n, idx) => localStorage.setItem('player' + (idx + 1), n));
+        }
+
+        /* --- LocalStorage --- */
+        function saveDataToLocalStorage() {
+            localStorage.setItem('resultTable', document.getElementById('resultTable').innerHTML);
+            localStorage.setItem('totalScoreTable', document.getElementById('totalScoreTable').innerHTML);
+            localStorage.setItem('averageRankTable', document.getElementById('averageRankTable').innerHTML);
+        }
+        function loadDataFromLocalStorage() {
+            if (localStorage.getItem('resultTable')) document.getElementById('resultTable').innerHTML = localStorage.getItem('resultTable');
+            if (localStorage.getItem('totalScoreTable')) document.getElementById('totalScoreTable').innerHTML = localStorage.getItem('totalScoreTable');
+            if (localStorage.getItem('averageRankTable')) document.getElementById('averageRankTable').innerHTML = localStorage.getItem('averageRankTable');
+        }
+        function resetPage() {
+            if (confirm('ページをリセットすると、すべてのデータが削除されます。よろしいですか？')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        /* --- スコア計算 --- */
+        function sortScores(active) {
+            // active: [{score, index, name}]
+            const duplicated = new Set();
+            active.forEach((p,i) => active.slice(i+1).forEach(q => { if(p.score===q.score) duplicated.add(p.score);}));
+
+            if (duplicated.size) {
+                // 同点がある場合は順位入力を促す
+                const order = [];
+                let sum = 0;
+                active.forEach(p => {
+                    const r = parseInt(prompt(`${p.name} の順位を半角数字で入力してください:`));
+                    order.push(r); sum += r; p.rank = r; });
+                if (sum !== 10) { alert('正しい順位を入力してください'); return null; }
+                active.sort((a,b)=>a.rank-b.rank);
+            } else {
+                active.sort((a,b)=>b.score-a.score);
+                active.forEach((p,i)=>p.rank=i+1);
+            }
+            return active;
+        }
+
+        function calScores() {
+            // 入力取得
+            const rawScores = [];
+            for (let i=1;i<=TOTAL_PLAYERS;i++) {
+                const v = document.getElementById('player'+i).value.trim();
+                rawScores.push(v===''?null:parseInt(v));
+            }
+            // 参加者判定
+            const activeIdx = rawScores.map((v,i)=>({v,i})).filter(x=>x.v!==null);
+            if (activeIdx.length !== PLAYERS_PER_GAME) {
+                document.getElementById('errorMessage').textContent = 'エラー: ちょうど4人分だけ点数を入力してください（誰か1人は空欄）';
+                return null;
+            }
+            document.getElementById('errorMessage').textContent = '';
+
+            // 合計チェック
+            const sum = activeIdx.reduce((acc,x)=>acc+x.v,0);
+            if (sum!==100000 && sum!==1000) {
+                alert('合計点数が100,000点（または1,000点）になっていません');
+                return null;
+            }
+            // 1,000点形式なら×100
+            if (sum===1000) activeIdx.forEach(x=>x.v*=100);
+
+            // active オブジェクト化
+            const activePlayers = activeIdx.map(obj=>({score:obj.v, index:obj.i+1, name:document.getElementById('playerLabel'+(obj.i+1)).textContent}));
+
+            // 順位付け
+            const ranked = sortScores(activePlayers);
+            if (!ranked) return null;
+
+            // ウマオカ
+            ranked[0].score += 30000;
+            ranked[1].score += 10000;
+            ranked[2].score -= 10000;
+            ranked[3].score -= 30000;
+
+            // テン5換算
+            ranked.forEach(p=>p.score = Math.floor((p.score - BASE_SCORE)/20));
+            return ranked; // 4人（index,name,score,rank）
+        }
+
+        /* --- 表へ追加 --- */
+        function add_scores() {
+            const ranked = calScores();
+            if (!ranked) return; // エラー時
+
+            // 5人分の表示オブジェクトを準備
+            const display = Array(TOTAL_PLAYERS).fill(null); // index 0..4
+            ranked.forEach(p=>display[p.index-1] = p);
+
+            const tr = document.createElement('tr');
+            display.forEach(p=>{
+                const tdRank = document.createElement('td');
+                const tdScore = document.createElement('td');
+                if (p){ tdRank.textContent = p.rank; tdScore.textContent = p.score; }
+                else { tdRank.textContent=''; tdScore.textContent=''; }
+                tr.appendChild(tdRank); tr.appendChild(tdScore);
+            });
+            document.getElementById('resultTable').querySelector('tbody').appendChild(tr);
+
+            updateTotalScores();
+            updateAverageRank();
+            saveDataToLocalStorage();
+
+            // 次のゲーム入力欄クリア
+            for(let i=1;i<=TOTAL_PLAYERS;i++) document.getElementById('player'+i).value='';
+        }
+
+        /* --- 合計pt --- */
+        function updateTotalScores() {
+            const totals = Array(TOTAL_PLAYERS).fill(0);
+            const rows = document.getElementById('resultTable').querySelectorAll('tbody tr');
+            rows.forEach(r=>{
+                for(let p=0;p<TOTAL_PLAYERS;p++){
+                    const cell = r.cells[p*2+1];
+                    if(cell && cell.textContent!=='' ) totals[p]+=parseInt(cell.textContent);
+                }
+            });
+            totals.forEach((t,idx)=>document.getElementById('totalScore'+(idx+1)).textContent=t);
+        }
+
+        /* --- 平均順位 --- */
+        function updateAverageRank() {
+            const rankSum = Array(TOTAL_PLAYERS).fill(0);
+            const gamesCnt = Array(TOTAL_PLAYERS).fill(0);
+            const rows = document.getElementById('resultTable').querySelectorAll('tbody tr');
+            rows.forEach(r=>{
+                for(let p=0;p<TOTAL_PLAYERS;p++){
+                    const rankCell = r.cells[p*2];
+                    if(rankCell && rankCell.textContent!==''){
+                        rankSum[p]+=parseInt(rankCell.textContent);
+                        gamesCnt[p]++;
+                    }
+                }
+            });
+            for(let i=0;i<TOTAL_PLAYERS;i++){
+                const avg = gamesCnt[i]===0 ? '-' : (rankSum[i]/gamesCnt[i]).toFixed(2);
+                document.getElementById('average_rank'+(i+1)).textContent = avg;
+            }
+        }
+
+        /* --- 1行削除 --- */
+        function confirmDelete(){ if(confirm('最新の1行を削除しますか？')) deleteLastRow(); }
+        function deleteLastRow(){ const tb=document.getElementById('resultTable'); if(tb.tBodies[0].rows.length){ tb.tBodies[0].deleteRow(-1); updateTotalScores(); updateAverageRank(); saveDataToLocalStorage(); }}
+
+        /* --- 収支計算（簡易 – 5人対応） --- */
+        function calculatePayments(){
+            const totals = [];
+            for(let i=1;i<=TOTAL_PLAYERS;i++) totals.push(parseInt(document.getElementById('totalScore'+i).textContent));
+            const players = [];
+            for(let i=1;i<=TOTAL_PLAYERS;i++) players.push(document.getElementById('playerLabel'+i).textContent);
+
+            const tableFee = parseFloat(prompt('場代を入力してください (円):',0));
+            if(isNaN(tableFee)||tableFee<0){alert('有効な場代を入力してください');return;}
+            const payerIdx = parseInt(prompt('誰が場代を払いましたか？\n'+players.map((n,i)=>i+': '+n).join('\n')));
+            if(isNaN(payerIdx)||payerIdx<0||payerIdx>=TOTAL_PLAYERS){alert('有効な番号を選択してください');return;}
+
+            const perPlayerFee = tableFee/TOTAL_PLAYERS; // 参加者4人で割る
+            for(let i=0;i<TOTAL_PLAYERS;i++){ totals[i]-=perPlayerFee; if(i===payerIdx) totals[i]+=tableFee; }
+
+            // 支払い計算（トップ取り式：最下位が払う → 1位に、残り調整）
+            const indices = totals.map((s,i)=>({i,s})).sort((a,b)=>b.s-a.s).map(o=>o.i);
+            const payments=[];
+            // シンプルに
+            for(let k=TOTAL_PLAYERS-1;k>0;k--){ // 下位から上位へ
+                let debtor = indices[k];
+                let owed = -totals[debtor];
+                if(owed<=0) continue;
+                for(let h=0;h<k;h++){
+                    let creditor = indices[h];
+                    if(totals[creditor]<=0) continue;
+                    const pay = Math.min(owed, totals[creditor]);
+                    if(pay>0){
+                        payments.push(`${players[debtor]} → ${players[creditor]}: ${pay}`);
+                        totals[debtor]+=pay; totals[creditor]-=pay; owed-=pay;
+                        if(owed===0) break;
+                    }
+                }
+            }
+            alert(payments.length?payments.join('\n'):'精算は不要です');
+        }
+
+        /* --- 起動時 --- */
+        window.onload=function(){ setPlayerNames(); loadDataFromLocalStorage(); };
+    </script>
+</body>
+</html>
